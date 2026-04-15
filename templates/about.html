@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | {{ app_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">{{ app_name }}</a>
+        <nav>
+            <a href="/">Analyze</a>
+            <a href="/about" class="active">About</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="hero">
+            <h1>About FakeShield v2</h1>
+            <p>A hybrid Fake News Detection Engine</p>
+        </div>
+
+        <section class="score-card" style="max-width: 800px; margin: 0 auto; text-align: left;">
+            <p style="margin-bottom: 1.5rem; color: var(--text-muted); line-height: 1.7;">
+                FakeShield v2 operates without relying solely on static datasets. By extracting keywords from your claim, it queries live endpoints (NewsAPI + RSS Fallbacks) to retrieve the latest breaking news. Our custom NLP engine then mathematically evaluates the textual similarity between the initial claim and the live evidence found.
+            </p>
+            
+            <h3 style="margin-bottom: 1rem;">Project Team</h3>
+            <ul style="list-style: none; padding: 0;">
+                {% for member in team %}
+                <li style="margin-bottom: 0.8rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                    <strong style="color: white; font-size: 1.1rem;">{{ member.name }}</strong> 
+                    <span style="color: var(--primary); margin-left: 10px;">({{ member.roll }})</span>
+                </li>
+                {% end %}
+            </ul>
+
+            <div style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                <p style="color: var(--text-muted); font-size: 0.9rem;">{{ college }}</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        &copy; 2026 {{ app_name }} v2.0 | Truth Powered by Evidence
+    </footer>
+</body>
+</html>

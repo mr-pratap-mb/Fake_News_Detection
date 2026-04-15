@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Result | {{ app_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #0a0e27;
+            --bg-end: #1a0533;
+            --glass-bg: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --fake: #ff4757;
+            --real: #2ed573;
+            --uncertain: #ffa502;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(10, 14, 39, 0.7); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: 800; color: white; text-decoration: none; }
+        nav a { color: var(--text-muted); text-decoration: none; margin-left: 2rem; font-weight: 600; transition: 0.3s; }
+        nav a:hover { color: white; }
+
+        main { padding: 3rem 5%; max-width: 1400px; margin: 0 auto; width: 100%; animation: fadeUp 0.8s ease; }
+
+        /* Verdict Hero */
+        .verdict-hero {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .verdict-badge {
+            display: inline-block;
+            font-size: 3rem;
+            font-weight: 800;
+            padding: 1rem 3rem;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .badge-fake { background: rgba(255, 71, 87, 0.1); color: var(--fake); border: 2px solid var(--fake); box-shadow: 0 0 20px rgba(255, 71, 87, 0.3); }
+        .badge-real { background: rgba(46, 213, 115, 0.1); color: var(--real); border: 2px solid var(--real); box-shadow: 0 0 20px rgba(46, 213, 115, 0.3); }
+        .badge-uncertain { background: rgba(255, 165, 2, 0.1); color: var(--uncertain); border: 2px solid var(--uncertain); box-shadow: 0 0 20px rgba(255, 165, 2, 0.3); }
+
+        .confidence-txt { font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem; }
+        .timing-badge { font-size: 0.85rem; color: var(--text-muted); background: var(--glass-bg); padding: 0.3rem 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+        .card-title { font-size: 1.2rem; font-weight: 700; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; margin-bottom: 1.5rem; color: white; }
+
+        /* Probability Bars */
+        .prob-row { margin-bottom: 1.5rem; }
+        .prob-label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted); }
+        .prob-bar-track { height: 12px; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; }
+        .prob-bar-fill { height: 100%; border-radius: 10px; width: 0; transition: width 1.5s ease-out; }
+        .fill-fake { background: linear-gradient(90deg, #ff6b81, var(--fake)); }
+        .fill-real { background: linear-gradient(90deg, #7bed9f, var(--real)); }
+
+        /* Credibility Meter */
+        .meter-track { height: 20px; background: rgba(0,0,0,0.3); border-radius: 10px; margin-bottom: 1rem; overflow: hidden; }
+        .meter-fill { height: 100%; background: linear-gradient(90deg, var(--fake), var(--uncertain), var(--real)); width: 0; transition: width 2s ease-out; border-radius: 10px; }
+        
+        /* Badges */
+        .tag { display: inline-block; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; font-family: 'Inter', monospace; background: rgba(255,255,255,0.1); margin: 0.2rem; border: 1px solid var(--glass-border); color: white;}
+        .tag-danger { background: rgba(255,71,87,0.2); color: #ff6b81; border-color: rgba(255,71,87,0.3); }
+        .tag-success { background: rgba(46,213,115,0.2); color: #7bed9f; border-color: rgba(46,213,115,0.3); }
+        .tag-warning { background: rgba(255,165,2,0.2); color: #eccc68; border-color: rgba(255,165,2,0.3); }
+
+        /* Evidence List */
+        .evidence-item { padding: 1.2rem; background: rgba(0,0,0,0.2); border-radius: 12px; margin-bottom: 1rem; border: 1px solid var(--glass-border); transition: transform 0.2s; }
+        .evidence-item:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); }
+        .evidence-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem; color: white; }
+        .evidence-meta { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
+        .evidence-link { color: var(--primary); text-decoration: none; font-weight: 600; }
+        .evidence-link:hover { text-decoration: underline; }
+
+        /* Quote box */
+        .preview-box { font-style: italic; color: var(--text-muted); padding: 1.5rem; border-left: 4px solid var(--primary); background: rgba(99, 102, 241, 0.05); border-radius: 0 12px 12px 0; line-height: 1.6; }
+
+        /* Actions */
+        .action-bar { display: flex; gap: 1rem; justify-content: center; margin-top: 3rem; }
+        .btn { padding: 1rem 2rem; border-radius: 12px; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: 0.3s; border: none; font-size: 1rem; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #4f46e5; box-shadow: 0 5px 15px rgba(99,102,241,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--glass-border); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="/" class="logo">🛡️ {{ app_name }}</a>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/#how-it-works">Features</a>
+            <a href="/about">About</a>
+        </nav>
+    </header>
+
+    <main>
+        {% if result.error_encountered %}
+        <!-- Error State Render -->
+        <section class="verdict-hero">
+            <div class="verdict-badge badge-fake" style="font-size: 2rem;">ANALYSIS FAILED</div>
+            <div class="confidence-txt" style="color: #ff6b81; font-weight: normal; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">
+                {{ result.error_message }}
+            </div>
+            <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 3rem;">
+                This usually happens if a given URL blocked our engine, or the content provided was too short.
+            </div>
+            <div class="action-bar" style="margin-top: 0;">
+                <a href="/" class="btn btn-primary">🔙 Go Back & Try Again</a>
+            </div>
+        </section>
+
+        {% else %}
+        <!-- Hero Verdict Section -->
+        <section class="verdict-hero">
+            {% set lbl = result.label %}
+            {% set badge_class = 'badge-fake' if lbl == 'Fake' else ('badge-real' if lbl == 'Real' else 'badge-uncertain') %}
+            
+            <div class="verdict-badge {{ badge_class }}">{{ lbl }}</div>
+            <div class="confidence-txt">Confidence: {{ result.confidence }}%</div>
+            <div class="timing-badge">Analyzed in {{ result.processing_time_ms }}ms</div>
+        </section>
+
+        <div class="dashboard-grid">
+            
+            <!-- Analyzed Preview -->
+            <div class="glass-card" style="grid-column: 1 / -1;">
+                <div class="card-title" style="display:flex; justify-content: space-between;">
+                    <span>Analyzed Content Preview</span>
+                    <span class="tag">{{ result.input_type | upper }}</span>
+                </div>
+                <div class="preview-box">"{{ result.analyzed_preview }}"</div>
+            </div>
+
+            <!-- Probability Section -->
+            <div class="glass-card">
+                <h3 class="card-title">ML Probability Matrix</h3>
+                <div class="prob-row">
+                    <div class="prob-label"><span>FAKE</span> <span>{{ result.fake_probability }}%</span></div>
+                    <div class="prob-bar-track">
+                        <div class="prob-bar-fill fill-fake" data-width="{{ result.fake_probability }}%"></div>
+                    </div>
+                </div>
+                <div class="prob-row">
+                    <div class="prob-label"><span>REAL</span> <span>{{ result.real_probability }}%</span></div>
+                    <div class="prob-bar-track">
+                        <div class="prob-bar-fill fill-real" data-width="{{ result.real_probability }}%"></div>
+                    </div>
+                </div>
+                
+                <h3 class="card-title" style="margin-top: 2rem;">Keyword Influence</h3>
+                <div>
+                    {% for kw in result.top_keywords %}
+                        <span class="tag">{{ kw }}</span>
+                    {% endfor %}
+                    {% if not result.top_keywords %}
+                        <span class="tag">None extracted</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Evidence Panel -->
+            <div class="glass-card">
+                <h3 class="card-title">Live Web Evidence</h3>
+                <div style="margin-bottom: 1.5rem;">
+                    {% set ev_label = result.evidence.evidence_verdict %}
+                    {% set ev_class = 'tag-success' if ev_label == 'SUPPORTED' else ('tag-danger' if ev_label == 'CONTRADICTED' else 'tag-warning') %}
+                    
+                    <span class="tag {{ ev_class }}">Verdict: {{ ev_label }}</span>
+                    <span class="tag">Corroboration: {{ result.evidence.corroboration_label }}</span>
+                </div>
+
+                <div class="evidence-list" style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+                    {% for art in result.evidence.relevant_articles[:3] %}
+                    <div class="evidence-item">
+                        <div class="evidence-title">{{ art.title[:80] }}{% if art.title|length > 80 %}...{% endif %}</div>
+                        <div class="evidence-meta">
+                            <span style="display: flex; gap: 8px; align-items: center;">
+                                <span class="tag" style="margin:0; padding: 2px 8px; font-size: 0.7rem;">{{ art.domain }}</span>
+                                {% if art.credibility_label == 'Credible' %}
+                                    <span style="color:var(--real);">●</span>
+                                {% elif art.credibility_label == 'Suspicious' %}
+                                    <span style="color:var(--fake);">●</span>
+                                {% else %}
+                                    <span style="color:var(--uncertain);">●</span>
+                                {% endif %}
+                            </span>
+                            <a href="{{ art.url|default('#', true) }}" target="_blank" class="evidence-link">Read &rarr;</a>
+                        </div>
+                    </div>
+                    {% else %}
+                        <p style="color: var(--text-muted); text-align: center; padding: 1rem;">No highly relevant live evidence compiled.</p>
+                    {% endfor %}
+                </div>
+                <div style="text-align: right; font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem;">
+                    Sources checked: {{ result.evidence.total_found }} articles via {{ result.evidence.source_used | upper }}
+                </div>
+            </div>
+
+            <!-- Tone & Credibility -->
+            <div class="glass-card">
+                <h3 class="card-title">Source Credibility Meter</h3>
+                <div class="meter-track">
+                    <div class="meter-fill" data-width="{{ result.credibility.score }}%"></div>
+                </div>
+                <div style="display:flex; justify-content: space-between; color: var(--text-muted); font-weight: 600; font-size: 0.9rem;">
+                    <span>Score: {{ result.credibility.score }}/100</span>
+                    <span>Label: <span style="color: white">{{ result.credibility.label | upper }}</span></span>
+                </div>
+
+                <h3 class="card-title" style="margin-top: 2rem;">Tone Analysis</h3>
+                <div style="margin-bottom: 1rem;">Dominant Tone: <span class="tag tag-warning" style="text-transform: capitalize;">{{ result.tone.dominant_tone }}</span></div>
+                <div>
+                    {% for flag in result.tone.tone_flags %}
+                        <span class="tag">{{ flag | replace('_', ' ') | title }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Patterns & Similarity -->
+            <div class="glass-card">
+                <h3 class="card-title">Pattern Detection & Similarity</h3>
+                
+                <div style="margin-bottom: 1rem;">
+                    {% set pr = result.patterns.risk_level %}
+                    Risk Level: <span class="tag {{ 'tag-danger' if pr == 'HIGH' else ('tag-warning' if pr == 'MEDIUM' else 'tag-success') }}">{{ pr }}</span>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                    <strong>Trigger Words:</strong> 
+                    {% for word in result.patterns.suspicious_words %}
+                        <span style="color: #ff6b81;">"{{ word }}"</span>{% if not loop.last %}, {% endif %}
+                    {% else %}
+                        None located.
+                    {% endfor %}
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    {% set sr = result.similarity.label %}
+                    Structural Similarity: <span class="tag {{ 'tag-danger' if sr == 'HIGH' else ('tag-warning' if sr == 'MEDIUM' else 'tag-success') }}">{{ sr }}</span>
+                </div>
+                
+                <div style="padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 3px solid var(--uncertain);">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Closest Known Vector:</div>
+                    <div style="font-size: 0.9rem; font-style: italic;">"{{ result.similarity.closest_pattern }}"</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <a href="/" class="btn btn-primary">🔍 Analyze Another</a>
+            <button class="btn btn-secondary" onclick="copySummary()">📋 Copy Summary</button>
+            <button class="btn btn-secondary" onclick="shareResult()">📤 Share</button>
+        </div>
+        
+        {% endif %} <!-- End Error Block -->
+
+    </main>
+
+    <script>
+        // Trigger fill animations securely isolated to defer rendering queue
+        window.onload = () => {
+            setTimeout(() => {
+                document.querySelectorAll('.prob-bar-fill, .meter-fill').forEach(el => {
+                    el.style.width = el.getAttribute('data-width');
+                });
+            }, 100);
+        };
+
+        function copySummary() {
+            {% if not result.error_encountered %}
+            const summary = `FakeShield v2 Verdict: {{ result.label }} ({{ result.confidence }}% Confidence).\nEvidence: {{ result.evidence.evidence_verdict }}\nAnalyzed Payload: "{{ result.analyzed_preview }}"`;
+            navigator.clipboard.writeText(summary).then(() => {
+                alert("Summary copied to clipboard!");
+            });
+            {% else %}
+            alert("Analysis failed. No valid summary block generated.");
+            {% endif %}
+        }
+
+        function shareResult() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'FakeShield v2 Analysis',
+                    text: `I just analyzed a claim using FakeShield v2. Verdict: {{ result.label }}!`,
+                    url: window.location.href
+                }).catch(console.error);
+            } else {
+                alert("Web Share API is not natively supported locally.");
+            }
+        }
+    </script>
+</body>
+</html>

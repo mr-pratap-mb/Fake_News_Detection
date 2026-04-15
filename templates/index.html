@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FakeShield v2 | Live Web Evidence Fake News Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #0a0e27;
+            --bg-end: #1a0533;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --fake: #ff4757;
+            --real: #2ed573;
+            --uncertain: #ffa502;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            animation: bgShift 15s ease infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0% { background: linear-gradient(135deg, #0a0e27, #1a0533); }
+            100% { background: linear-gradient(135deg, #0f1538, #2a0845); }
+        }
+
+        /* Nav */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 14, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-left: 2rem;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        nav a:hover { color: white; }
+
+        main { flex: 1; padding: 4rem 5%; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+        /* Hero */
+        .hero { text-align: center; margin-bottom: 4rem; animation: fadeUp 1s ease; }
+        
+        .shield-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .hero h1 { font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.2; }
+        .hero p.subheading { font-size: 1.25rem; color: var(--text-muted); margin-bottom: 2rem; }
+
+        .badges { display: flex; justify-content: center; gap: 1rem; }
+        .badge {
+            background: rgba(46, 213, 115, 0.1);
+            color: var(--real);
+            border: 1px solid rgba(46, 213, 115, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .input-section { max-width: 800px; margin: 0 auto 5rem; animation: fadeUp 1.2s ease; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+        .tab-btn {
+            flex: 1;
+            padding: 1rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        textarea, input[type="url"] {
+            width: 100%;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            color: white;
+            font-size: 1.1rem;
+            outline: none;
+            transition: border-color 0.3s;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 1rem;
+        }
+
+        textarea { resize: vertical; min-height: 150px; }
+        textarea:focus, input[type="url"]:focus { border-color: var(--primary); }
+
+        .input-actions { display: flex; justify-content: space-between; align-items: center; }
+        .char-count { color: var(--text-muted); font-size: 0.9rem; }
+        .btn-clear { background: transparent; border: none; color: var(--text-muted); cursor: pointer; transition: color 0.3s; }
+        .btn-clear:hover { color: var(--fake); }
+
+        .btn-submit {
+            width: 100%;
+            padding: 1.2rem;
+            margin-top: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px var(--primary-glow);
+        }
+
+        .btn-submit::after {
+            content: "";
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shine 3s infinite;
+        }
+
+        .section-title { text-align: center; font-size: 2rem; margin-bottom: 3rem; font-weight: 800; }
+
+        /* Grid Layouts */
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 5rem; }
+        .grid-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .grid-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); }
+        .grid-card h3 { color: white; margin: 1rem 0; }
+        .grid-card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+
+        /* Loading */
+        .loading { display: none; text-align: center; padding: 2rem; }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 4px solid var(--glass-border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--glass-border);
+            padding: 3rem 5%;
+            margin-top: auto;
+            text-align: center;
+            color: var(--text-muted);
+            background: rgba(0,0,0,0.2);
+        }
+        footer p { margin-bottom: 0.5rem; }
+
+        /* Animations */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes shine { to { left: 200%; } }
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            nav a { margin-left: 1rem; font-size: 0.9rem; }
+            .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header style="flex-direction: column; padding: 1rem 5% 0.5rem 5%;">
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <a href="/" class="logo">🛡️ {{ app_name }}</a>
+            <nav>
+                <a href="/">Home</a>
+                <a href="#how-it-works">Features</a>
+                <a href="/about">About</a>
+            </nav>
+        </div>
+        <div style="width: 100%; text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+            Project by: <span style="color: white; font-weight: 600;">{% for member in team %}{{ member.name }}{% if not loop.last %} & {% endif %}{% endfor %}</span> | {{ college }}
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="shield-icon">🛡️</div>
+            <h1>Detect Fake News with<br><span style="color: var(--primary);">Live Web Evidence</span></h1>
+            <p class="subheading" style="margin-bottom: 3.5rem;">Powered by NewsAPI, NLP & Machine Learning</p>
+
+            <div class="badges">
+                <span class="badge">Live Evidence ✓</span>
+                <span class="badge">Real-Time Analysis ✓</span>
+            </div>
+        </section>
+
+        <section class="glass-card input-section">
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-text" onclick="switchTab('text')">📝 Enter Text</button>
+                <button class="tab-btn" id="tab-url" onclick="switchTab('url')">🔗 Enter URL</button>
+            </div>
+
+            <form id="analyzeForm" action="/analyze" method="POST">
+                <div id="text-input-wrap">
+                    <textarea name="news_text" id="news_text" placeholder="Paste news article, headline, social post or claim..." oninput="updateCount()"></textarea>
+                    <div class="input-actions">
+                        <span class="char-count" id="charCounter">0 characters</span>
+                        <button type="button" class="btn-clear" onclick="document.getElementById('news_text').value=''; updateCount();">✕ Clear</button>
+                    </div>
+                </div>
+
+                <div id="url-input-wrap" class="hidden">
+                    <input type="url" name="news_url" id="news_url" placeholder="https://example.com/news-article">
+                    <div class="input-actions">
+                        <span></span>
+                        <button type="button" class="btn-clear" onclick="document.getElementById('news_url').value='';">✕ Clear</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">🔍 Analyze Now</button>
+            </form>
+
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <p>Establishing secure connection... Analyzing live OSINT data...</p>
+            </div>
+        </section>
+
+        <h2 class="section-title" id="how-it-works">How It Works</h2>
+        <div class="grid-3">
+            <div class="grid-card">
+                <div style="font-size: 2.5rem; margin-bottom: 1rem;">📥</div>
+                <h3>1. Input Claim/URL</h3>
+                <p>Provide raw text, an article URL, or both. We securely process the data.</p>
+            </div>
+            <div class="grid-card">
+                <div style="font-size: 2.5rem; margin-bottom: 1rem;">🌐</div>
+                <h3>2. Live Evidence Fetching</h3>
+                <p>We hit live endpoints (NewsAPI, RSS) searching for global corroboration.</p>
+            </div>
+            <div class="grid-card">
+                <div style="font-size: 2.5rem; margin-bottom: 1rem;">🧠</div>
+                <h3>3. AI Verdict + Explanation</h3>
+                <p>A multi-layered NLP model evaluates the context and returns actionable insights.</p>
+            </div>
+        </div>
+
+        <h2 class="section-title">Core Capabilities</h2>
+        <div class="grid-3">
+            <div class="grid-card"><h3>Live Web Evidence</h3><p>Cross-references breaking global news organically.</p></div>
+            <div class="grid-card"><h3>10+ Misinformation Patterns</h3><p>Detects structural fake-news manipulations natively.</p></div>
+            <div class="grid-card"><h3>Source Credibility Check</h3><p>Tracks source domains against verified OSINT credibility arrays.</p></div>
+            <div class="grid-card"><h3>Confidence Scoring</h3><p>Calibrates outputs using sophisticated mathematical weighting.</p></div>
+            <div class="grid-card"><h3>Keyword Influence</h3><p>Identifies and tracks semantic focal points inside the article.</p></div>
+            <div class="grid-card"><h3>Explainable AI</h3><p>Provides fully transparent analytical breakdowns of exact findings.</p></div>
+        </div>
+    </main>
+
+    <footer>
+        <p>🛡️ <strong>{{ app_name }} {{ version }}</strong> © 2026 | Truth Powered by Evidence</p>
+        <p>{% for member in team %}{{ member.name }} ({{ member.roll }}){% if not loop.last %} | {% endif %}{% endfor %}</p>
+        <p>{{ college }}</p>
+        <p style="margin-top: 1rem; font-size: 0.8rem;">Built with Flask &middot; scikit-learn &middot; NewsAPI &middot; NLP</p>
+    </footer>
+
+    <script>
+        function switchTab(mode) {
+            document.getElementById('tab-text').classList.remove('active');
+            document.getElementById('tab-url').classList.remove('active');
+            document.getElementById('text-input-wrap').classList.add('hidden');
+            document.getElementById('url-input-wrap').classList.add('hidden');
+            
+            document.getElementById('news_text').value = '';
+            document.getElementById('news_url').value = '';
+            updateCount();
+
+            document.getElementById('tab-' + mode).classList.add('active');
+            document.getElementById(mode + '-input-wrap').classList.remove('hidden');
+        }
+
+        function updateCount() {
+            const count = document.getElementById('news_text').value.length;
+            document.getElementById('charCounter').innerText = count + ' characters';
+        }
+
+        document.getElementById('analyzeForm').addEventListener('submit', function(e) {
+            const text = document.getElementById('news_text').value.trim();
+            const url = document.getElementById('news_url').value.trim();
+            
+            if (!text && !url) {
+                e.preventDefault();
+                alert("Please provide text or a standard URL to proceed.");
+                return;
+            }
+            if (text && text.length < 20 && !url) {
+                e.preventDefault();
+                alert("Text segments must be at least 20 characters.");
+                return;
+            }
+            
+            document.getElementById('analyzeForm').style.display = 'none';
+            document.getElementById('loadingState').style.display = 'block';
+        });
+    </script>
+</body>
+</html>
