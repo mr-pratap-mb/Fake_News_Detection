@@ -20,4 +20,3 @@ FakeShield v2 is not just a static classifier; it is a **dynamic verification en
 - **Frontend:** HTML5, CSS3 (Modern Dark UI), JS
 - **AI/NLP:** Scikit-Learn, NLTK, BeautifulSoup4
 - **Data:** NewsAPI, Feedparser (RSS)
--
