@@ -18,27 +18,60 @@
     <main>
         <div class="hero">
             <h1>About FakeShield v2</h1>
-            <p>A hybrid Fake News Detection Engine</p>
+            <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 1rem auto;">A live web-evidence fake news detection engine powered by NLP, Semantic Alignment, and OSINT.</p>
         </div>
 
-        <section class="score-card" style="max-width: 800px; margin: 0 auto; text-align: left;">
-            <p style="margin-bottom: 1.5rem; color: var(--text-muted); line-height: 1.7;">
-                FakeShield v2 operates without relying solely on static datasets. By extracting keywords from your claim, it queries live endpoints (NewsAPI + RSS Fallbacks) to retrieve the latest breaking news. Our custom NLP engine then mathematically evaluates the textual similarity between the initial claim and the live evidence found.
-            </p>
+        <section class="score-card" style="max-width: 900px; margin: 0 auto; text-align: left; padding: 2.5rem;">
             
-            <h3 style="margin-bottom: 1rem;">Project Team</h3>
-            <ul style="list-style: none; padding: 0;">
-                {% for member in team %}
-                <li style="margin-bottom: 0.8rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
-                    <strong style="color: white; font-size: 1.1rem;">{{ member.name }}</strong> 
-                    <span style="color: var(--primary); margin-left: 10px;">({{ member.roll }})</span>
-                </li>
-                {% end %}
-            </ul>
-
-            <div style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-                <p style="color: var(--text-muted); font-size: 0.9rem;">{{ college }}</p>
+            <h2 style="color: var(--primary); margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">Project Developers</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem;">
+                <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px;">
+                    <h3 style="color: white; margin-bottom: 0.3rem;">Pratap Bambadi</h3>
+                    <div style="color: var(--primary); font-family: monospace; margin-bottom: 0.5rem;">USN: 2BU23CS100</div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Lead Architect</p>
+                </div>
+                <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px;">
+                    <h3 style="color: white; margin-bottom: 0.3rem;">Preetam J Hiremath</h3>
+                    <div style="color: var(--primary); font-family: monospace; margin-bottom: 0.5rem;">USN: 2BU23CS104</div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Core Developer</p>
+                </div>
             </div>
+            
+            <div style="text-align: center; margin-bottom: 2.5rem;">
+                <p style="color: var(--text-muted); font-size: 1rem; letter-spacing: 1px;">DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING</p>
+                <h3 style="color: white; margin-top: 0.5rem;">SGBIT College</h3>
+            </div>
+
+            <h2 style="color: var(--primary); margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">Project Overview & Motive</h2>
+            <p style="margin-bottom: 1.5rem; color: var(--text-muted); line-height: 1.7;">
+                In the era of rapid digital communication, misinformation spreads faster than the truth. Traditional fake news detectors rely entirely on pre-trained "static datasets." This means if a new hoax was invented yesterday, standard AI models won't detect it because it wasn't in their training data. 
+            </p>
+            <p style="margin-bottom: 2.5rem; color: var(--text-muted); line-height: 1.7;">
+                <strong>Our Motive:</strong> We built FakeShield v2 to solve the "Static Data Problem." Our primary motive was to create an intelligent system that verifies claims exactly like a human journalist would—by actively searching the live internet for evidence, checking the credibility of those sources, analyzing the mathematical stance, and presenting a transparent verdict.
+            </p>
+
+            <h2 style="color: var(--primary); margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">Core Features & Pipeline</h2>
+            
+            <div style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-left: 3px solid var(--primary); border-radius: 4px;">
+                <h4 style="color: white; margin-bottom: 0.5rem;">1. Live OSINT Web Corroboration</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">FakeShield breaks down the user's input, extracts the core nouns, and dynamically scrapes the open web (via NewsAPI) for matching evidence. If a claim has no digital footprint, the system automatically flags it as unverified.</p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-left: 3px solid var(--uncertain); border-radius: 4px;">
+                <h4 style="color: white; margin-bottom: 0.5rem;">2. Deep Semantic Filtering & NLTK</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">We implemented Natural Language Toolkit (NLTK) to analyze Topological Parts of Speech (like Nouns/Verbs) and Numerical bounds. If the claim says "150 years", the live evidence must natively contain the number "150" or the article is discarded to prevent AI hallucinations.</p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-left: 3px solid var(--fake); border-radius: 4px;">
+                <h4 style="color: white; margin-bottom: 0.5rem;">3. Stance Detection & Sensationalism Matrix</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">The ML model doesn't just look for "Fake-sounding" words. It analyzes the ratio of sensational superlatives. Furthermore, if the OSINT evidence explicitly contains words like "hoax" or "debunked", FakeShield forcefully flips the probability matrix to Fake.</p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-left: 3px solid #7bed9f; border-radius: 4px;">
+                <h4 style="color: white; margin-bottom: 0.5rem;">4. Triggers, Heatmaps & The Contrast Engine</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">The UI generates a visual Heatmap locating specifically categorized forensic flags (Linguistic Tricks, Logical Fallacies). Finally, The "Contrast Engine" runs a silent background query targeting official Fact-Checking sites (Snopes, AltNews). If found, a glowing Red Shield Alert is displayed bridging direct proof to the user.</p>
+            </div>
+            
         </section>
     </main>
 

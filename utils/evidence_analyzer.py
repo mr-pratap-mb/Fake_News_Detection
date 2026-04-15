@@ -1,6 +1,14 @@
 import random
 import re
+import nltk
 from utils.text_processor import TextProcessor
+
+try:
+    nltk.data.find('taggers/averaged_perceptron_tagger')
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt', quiet=True)
+    nltk.download('averaged_perceptron_tagger', quiet=True)
 
 class EvidenceAnalyzer:
     """
@@ -39,10 +47,31 @@ class EvidenceAnalyzer:
         desc = article.get('description', '')
         
         # Combine contextual features
-        combined_article_text = f"{title} {desc}"
+        combined_article_text = f"{title} {desc}".lower()
+        claim_lower = claim_text.lower()
         
         if not combined_article_text.strip():
             return 0.0
+            
+        # 1. Numerical Consistency Check (Strict Constraint logic)
+        numbers_in_claim = re.findall(r'\b\d+\b', claim_lower)
+        if numbers_in_claim:
+            # If numerical bounds exist in the prompt, they must exist in the corroborating evidence natively
+            if not any(num in combined_article_text for num in numbers_in_claim):
+                 return 0.0
+                 
+        # 2. Contextual Pruning (NLTK POS Tagging)
+        claim_tokens = nltk.word_tokenize(claim_lower)
+        claim_tags = nltk.pos_tag(claim_tokens)
+        
+        # Extract primarily declarative nouns handling the Core Subject
+        primary_entities = set(word for word, tag in claim_tags if tag.startswith('NN') and len(word) > 2)
+        
+        if primary_entities:
+            matches = sum(1 for entity in primary_entities if entity in combined_article_text)
+            # If the evidence text doesn't possess at least 25% noun-overlap, strictly bleed out.
+            if len(primary_entities) > 1 and (matches / len(primary_entities) < 0.25):
+                return 0.0
             
         similarity = self.processor.compute_text_similarity(claim_text, combined_article_text)
         return similarity

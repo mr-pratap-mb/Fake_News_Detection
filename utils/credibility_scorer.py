@@ -46,9 +46,10 @@ class CredibilityScorer:
             "tone_score": total_hits
         }
 
-    def estimate_credibility(self, text):
+    def estimate_credibility(self, text, domain=""):
         """
         Calculates score 0-100, label, and array of positive/negative signals.
+        Evaluates Semantic, Domain extensions, and Author Attribution.
         """
         tone_data = self.analyze_tone(text)
         
@@ -62,6 +63,32 @@ class CredibilityScorer:
             negative_signals.extend(tone_data["tone_flags"])
         else:
             positive_signals.append("neutral_objective_tone")
+            
+        # 1. Feature Addition: Domain Extension Authority
+        if domain and isinstance(domain, str):
+            d_low = domain.lower()
+            if '.gov' in d_low or '.edu' in d_low:
+                score += 20
+                positive_signals.append("High-authority extension (.gov/.edu)")
+            elif any(ext in d_low for ext in ['.xyz', '.biz', '.info', '.click', '.top']):
+                score -= 40
+                negative_signals.append("Low-trust domain extension")
+                
+        # 2. Feature Addition: Author Attribution Check
+        import nltk
+        has_author = False
+        try:
+             tokens = nltk.word_tokenize(str(text))
+             tags = nltk.pos_tag(tokens)
+             has_author = any(w in str(text) for w in ["Dr.", "Prof.", "Professor", "Researcher", "Chief"]) or \
+                          sum(1 for w, t in tags if t == 'NNP') > 2
+        except: pass
+        
+        if not has_author:
+            score -= 15
+            negative_signals.append("Lacks clear authorial attribution")
+        else:
+            positive_signals.append("Clear authorial/expert attribution")
             
         # Basic bounds checking
         score = max(0, min(100, score))

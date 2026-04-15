@@ -2,6 +2,7 @@ import os
 import time
 import joblib
 import traceback
+import re
 
 from config import NEWSAPI_KEY, RSS_FEEDS
 
@@ -118,8 +119,35 @@ class FakeNewsPredictor:
             # ---------------------------------------------
             # Format explicitly for NewsAPI OR logic cleanly to avoid 'breaking news' bug
             search_terms = claim_keywords.split()[:4] # Take top 4 most powerful entities safely
-            search_query = " OR ".join(search_terms) if search_terms else ""
+            
+            # Map numbers natively targeting strictly explicit extraction mechanics for better NewsAPI hit rates
+            mapped_terms = []
+            for t in search_terms:
+                if re.match(r'^\d+$', t):
+                    mapped_terms.append(f'"{t}"')
+                else: mapped_terms.append(t)
+                
+            search_query = " OR ".join(mapped_terms) if mapped_terms else ""
             articles, source_used = self.fetch_live_evidence(search_query, input_url)
+
+            # ---------------------------------------------
+            # STEP 3.5 - The Contrast Engine 🛡️
+            # ---------------------------------------------
+            shield_alert = None
+            if search_terms:
+                try:
+                    contrast_query = f"{' '.join(search_terms)} AND (hoax OR debunk)"
+                    contrast_articles = self.news_api.search_everything(contrast_query, max_results=5)
+                    verified_debunkers = ["snopes.com", "politifact.com", "altnews.in", "boomlive.in", "factcheck.org", "reuters.com"]
+                    for art in contrast_articles:
+                        if any(vd in art.get('domain', '').lower() for vd in verified_debunkers):
+                            shield_alert = {
+                                "source": art.get('domain', 'Fact-Checker'),
+                                "url": art.get('url', '#'),
+                                "title": art.get('title', 'Official Debunk Found')
+                            }
+                            break
+                except: pass
 
             # ---------------------------------------------
             # STEP 4 - Evidence Analysis
@@ -139,7 +167,7 @@ class FakeNewsPredictor:
             # ---------------------------------------------
             # STEP 6 - Credibility Scoring
             # ---------------------------------------------
-            credibility_data = self.credibility_scorer.estimate_credibility(combined_content)
+            credibility_data = self.credibility_scorer.estimate_credibility(combined_content, input_url)
             tone_data = self.credibility_scorer.analyze_tone(combined_content)
             
             # Optional headline checking logically applied
@@ -168,6 +196,14 @@ class FakeNewsPredictor:
                     except:
                         pass
             ml_prob_real = 1.0 - ml_prob_fake
+            
+            # --- Sensationalism Feature Injection ---
+            superlatives = {"shocking", "hidden", "confirm", "secret", "exposed", "surprising", "miracle"}
+            words = combined_content.lower().split()
+            if words:
+                sensationalism_ratio = sum(1 for w in words if w in superlatives) / len(words)
+                ml_prob_fake = min(1.0, ml_prob_fake + (sensationalism_ratio * 5.0)) # Inflate weight dynamically
+                ml_prob_real = 1.0 - ml_prob_fake
 
             # ---------------------------------------------
             # STEP 9 - Confidence Calibration
@@ -184,22 +220,48 @@ class FakeNewsPredictor:
                 base_fake_score = max(base_fake_score, 0.85)
             elif evidence_data["evidence_verdict"] == "SUPPORTED" and len(evidence_data["top_credible_sources"]) > 3:
                 base_fake_score = min(base_fake_score, 0.22) # (Pushes real > 0.78)
+            
+            # Negation Stripper (Stance Detection Hard Override)
+            stance_negation = False
+            for art in articles:
+                text = (art.get('title', '') + " " + art.get('description', '')).lower()
+                if any(w in text for w in ["myth", "debunked", "false", "hoax"]):
+                    stance_negation = True
+                    break
+            
+            if stance_negation:
+                base_fake_score = max(base_fake_score, 0.90) # Flipped forcefully to Fake
+            elif similarity_data.get("similarity_label", "LOW") == "HIGH": # 60% Pattern override logic per implementation limits
+                base_fake_score = max((base_fake_score * 0.4) + (0.95 * 0.6), 0.85)
             elif pattern_data["risk_level"] == "HIGH":
                 base_fake_score = max(base_fake_score, 0.83) # (Pushes fake > 0.82)
             elif evidence_data["corroboration_label"] == "Strong" and not pattern_data["matched_patterns"]:
                 base_fake_score = min(base_fake_score, 0.25) # (Pushes real > 0.75)
                 
+            # --- Explicit Zero-Footprint Text Heuristic ---
+            # If a text-only claim possesses no open-web corroboration AND shows ANY signs of manipulation, it is definitively Fake/Fabricated.
+            if not input_url and evidence_data["evidence_verdict"] in ["INSUFFICIENT", "UNVERIFIED"]:
+                if pattern_data["risk_level"] in ["HIGH", "MEDIUM"] or 'sensationalism_ratio' in locals() and sensationalism_ratio > 0.0:
+                    base_fake_score = max(base_fake_score, 0.88)
+                
             base_fake_score = min(max(base_fake_score, 0.0), 1.0)
             
+            # --- Eliminate 'Uncertain' for Text Inputs ---
+            if not input_url and 0.4 <= base_fake_score <= 0.6:
+                base_fake_score = 0.65 if ml_prob_fake > 0.5 else 0.35
+            
             # Labels and Confidence mappings
-            if base_fake_score > 0.6:
+            if base_fake_score >= 0.6:
                 label = "Fake"
                 confidence = base_fake_score
-            elif base_fake_score < 0.4:
+            elif base_fake_score <= 0.4:
                 label = "Real"
                 confidence = 1.0 - base_fake_score
             else:
-                label = "Uncertain"
+                if base_fake_score >= 0.5:
+                    label = "Fake (Uncertain)"
+                else:
+                    label = "Real (Uncertain)"
                 # Inverse penalty - closer to 0.5 is lower confidence
                 confidence = 1.0 - (0.5 - abs(0.5 - base_fake_score))
 
@@ -232,7 +294,8 @@ class FakeNewsPredictor:
                     "risk_level": pattern_data["risk_level"],
                     "matched_patterns": pattern_data["matched_patterns"],
                     "pattern_score": pattern_data["pattern_score"],
-                    "suspicious_words": pattern_data["suspicious_words"]
+                    "suspicious_words": pattern_data["suspicious_words"],
+                    "forensic_labels": pattern_data.get("forensic_labels", [])
                 },
                 "similarity": {
                     "label": similarity_data["similarity_label"],
@@ -246,6 +309,7 @@ class FakeNewsPredictor:
                 "top_keywords": preproc_data["keywords"],
                 "analyzed_preview": (combined_content[:150] + '...') if len(combined_content) > 150 else combined_content,
                 "input_type": input_type,
+                "shield_alert": shield_alert,
                 "processing_time_ms": process_time
             }
 

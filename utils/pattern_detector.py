@@ -7,16 +7,27 @@ class PatternDetector:
     """
     
     MISINFORMATION_PATTERNS = {
-        "viral_claim": ["viral", "going viral", "share this before deleted", "forward this"],
-        "old_media_reuse": ["old video", "old photo", "resurfaced", "from 2019", "from 2020", "years ago"],
-        "fabricated_quote": ["never said", "falsely attributed", "fake statement", "misquoted", "fabricated"],
-        "edited_media": ["edited image", "morphed", "doctored", "photoshopped", "manipulated photo"],
-        "whatsapp_rumor": ["whatsapp forward", "received this message", "please share", "chain message"],
-        "fake_authority": ["government hiding", "classified leak", "secret order", "pm declared secretly"],
+        # Linguistic Tricks
         "clickbait": ["you won't believe", "shocking truth", "they don't want you to know", "exposed secretly"],
-        "unverified_stats": ["according to anonymous sources", "insiders reveal", "secret report shows"],
         "urgency_trigger": ["share immediately", "before it's deleted", "act now", "urgent breaking"],
-        "conspiracy": ["deep state", "new world order", "agenda exposed", "illuminati", "staged event"]
+        "viral_claim": ["viral", "going viral", "share this before deleted", "forward this"],
+        
+        # Logical Fallacies
+        "fake_authority": ["government hiding", "classified leak", "secret order", "pm declared secretly"],
+        "unverified_stats": ["according to anonymous sources", "insiders reveal", "secret report shows"],
+        "conspiracy": ["deep state", "new world order", "agenda exposed", "illuminati", "staged event"],
+        "fabricated_quote": ["never said", "falsely attributed", "fake statement", "misquoted", "fabricated"],
+        
+        # Source Red-Flags
+        "old_media_reuse": ["old video", "old photo", "resurfaced", "from 2019", "from 2020", "years ago"],
+        "edited_media": ["edited image", "morphed", "doctored", "photoshopped", "manipulated photo"],
+        "whatsapp_rumor": ["whatsapp forward", "received this message", "please share", "chain message"]
+    }
+    
+    CATEGORY_MAPPINGS = {
+        "Linguistic Tricks": ["clickbait", "urgency_trigger", "viral_claim"],
+        "Logical Fallacies": ["fake_authority", "unverified_stats", "conspiracy", "fabricated_quote"],
+        "Source Red-Flags": ["old_media_reuse", "edited_media", "whatsapp_rumor"]
     }
 
     def detect_patterns(self, text):
@@ -36,9 +47,17 @@ class PatternDetector:
         else:
             risk = "LOW"
             
+        # Compile Forensic Labels
+        forensic_labels = []
+        for cat in patterns_found:
+             for major_cat, subcats in self.CATEGORY_MAPPINGS.items():
+                 if cat in subcats and major_cat not in forensic_labels:
+                      forensic_labels.append(major_cat)
+            
         return {
             "risk_level": risk,
             "patterns_found": patterns_found,
+            "forensic_labels": forensic_labels,
             "score": score
         }
 
